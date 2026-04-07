@@ -55,6 +55,18 @@
       <div id="splash-sub">Cargando…</div>
     </div>
   </div>
+  <!-- OneSignal SDK -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "a53d37c2-d328-48e0-84e4-1a3a71db77ad",
+        notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+      });
+    });
+  </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
