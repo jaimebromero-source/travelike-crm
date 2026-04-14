@@ -45,7 +45,7 @@ const logoutSessionToken = async (token) => {
 
 const GEMINI_KEY = "AIzaSyCEv0XlhJy4hTjotvRASDxMRikXUnwtQNQ";
 const ONESIGNAL_REST_KEY = "os_v2_app_mjlsgxjwrfgmrnufo7yw5aef6sp4wk7yv2muupvtoel7yyn4pyxwwdi47sginuflwrvp7qddq6ku4jtqhlqfmes2hz3kkln6bl3buha";
-const ONESIGNAL_APP_ID = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
+const ONESIGNAL_APP_ID = "6257235d-3689-4cc8-b685-77f16e8085f4";
 
 const BANK_IBAN = "ES48 0128 0690 9001 0008 6284";
 const BANK_TITULAR = "TraveLike";
