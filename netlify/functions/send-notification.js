@@ -31,7 +31,7 @@ exports.handler = async (event) => {
     contents: { es: message, en: message },
     ...(filters && filters.length > 0
       ? { filters }
-      : { included_segments: ["All Subscribers"] })
+: { included_segments: ["Subscribed Users"] })
   };
 
   try {
