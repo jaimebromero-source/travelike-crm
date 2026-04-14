@@ -1,5 +1,5 @@
 // netlify/functions/send-notification.js
-const ONESIGNAL_APP_ID  = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
+const ONESIGNAL_APP_ID  = "6257235d-3689-4cc8-b685-77f16e8085f4";
 const ONESIGNAL_REST_KEY =
   process.env.ONESIGNAL_REST_KEY ||
   "os_v2_app_mjlsgxjwrfgmrnufo7yw5aef6sp4wk7yv2muupvtoel7yyn4pyxwwdi47sginuflwrvp7qddq6ku4jtqhlqfmes2hz3kkln6bl3buha";
