@@ -3,7 +3,6 @@
 const ONESIGNAL_APP_ID   = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
 // USA LA LEGACY API KEY (la que aparece en Settings → Keys & IDs → Legacy API Key)
 const ONESIGNAL_REST_KEY = "os_v2_app_uu6tpqwtfbeobbhedi5hdw3xvulu6za5atre6suc6e6wqeqerulgxyjlzyrafftbfx4gwmdtf7cx46jommbmjk2v22dzx3wsyodxoiy";
-
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
@@ -32,8 +31,7 @@ exports.handler = async (event) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Basic ${ONESIGNAL_REST_KEY}`
-      },
+"Authorization": `Key ${ONESIGNAL_REST_KEY}`      },
       body: JSON.stringify(payload)
     });
 
