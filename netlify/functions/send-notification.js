@@ -2,7 +2,7 @@
 // Proxy seguro para OneSignal — la REST Key nunca llega al navegador
 
 const ONESIGNAL_APP_ID  = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
-const ONESIGNAL_REST_KEY = "jxvhjotofu75udz7qhtq72w3o";
+const ONESIGNAL_REST_KEY = "os_v2_app_uu6tpqwtfbeobbhedi5hdw3xvuaf4zamaqquz6vp2jxvnzlqt2jhoilxmgl6rprkik6br2imckizx4av47awmej2qkl6p22zijhnnay";
 
 exports.handler = async (event) => {
   // Solo POST
