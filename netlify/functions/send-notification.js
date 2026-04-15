@@ -1,14 +1,13 @@
 // netlify/functions/send-notification.js
-// ⚠️ La REST Key NUNCA va en el código — solo en variables de entorno de Netlify
 
-const ONESIGNAL_APP_ID = "c12214ba-200f-478f-8f8e-899efc5ad4c0";
+// ✅ VOLVEMOS AL APP ID QUE SÍ TE FUNCIONÓ PARA LOS VIAJES
+const ONESIGNAL_APP_ID = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  // La key viene SOLO del entorno — nunca hardcodeada
   const REST_KEY = process.env.ONESIGNAL_REST_KEY;
   if (!REST_KEY) {
     console.error("[OneSignal] ONESIGNAL_REST_KEY no está configurada en Netlify");
@@ -31,7 +30,7 @@ exports.handler = async (event) => {
     contents: { es: message, en: message },
     ...(filters && filters.length > 0
       ? { filters }
-      : { included_segments: ["Subscribed Users"] }) // ✅ CAMBIADO a "Subscribed Users"
+      : { included_segments: ["Subscribed Users"] }) // ✅ El segmento correcto para "Todos"
   };
 
   try {
@@ -39,8 +38,8 @@ exports.handler = async (event) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // ✅ CAMBIADO: Usamos "Basic", que es el formato principal de la API
-        "Authorization": `Basic ${REST_KEY}`
+        // ✅ Volvemos a "key" en minúscula, que es como lo tenías cuando funcionaban los viajes
+        "Authorization": `key ${REST_KEY}`
       },
       body: JSON.stringify(payload)
     });
