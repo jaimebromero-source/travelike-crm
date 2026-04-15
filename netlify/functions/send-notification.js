@@ -1,18 +1,12 @@
 // netlify/functions/send-notification.js
-// ⚠️ La REST Key NUNCA va en el código — solo en variables de entorno de Netlify
-
-const ONESIGNAL_APP_ID = "c12214ba-200f-478f-8f8e-899efc5ad4c0";
+const ONESIGNAL_APP_ID  = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
+const ONESIGNAL_REST_KEY =
+  process.env.ONESIGNAL_REST_KEY ||
+  "os_v2_app_mjlsgxjwrfgmrnufo7yw5aef6sp4wk7yv2muupvtoel7yyn4pyxwwdi47sginuflwrvp7qddq6ku4jtqhlqfmes2hz3kkln6bl3buha";
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
-  }
-
-  // La key viene SOLO del entorno — nunca hardcodeada
-  const REST_KEY = process.env.ONESIGNAL_REST_KEY;
-  if (!REST_KEY) {
-    console.error("[OneSignal] ONESIGNAL_REST_KEY no está configurada en Netlify");
-    return { statusCode: 500, body: JSON.stringify({ error: "REST key no configurada" }) };
   }
 
   let body;
@@ -21,7 +15,7 @@ exports.handler = async (event) => {
 
   const { title, message, filters } = body;
   if (!title || !message) {
-    return { statusCode: 400, body: JSON.stringify({ error: "title y message son obligatorios" }) };
+    return { statusCode: 400, body: "title y message son obligatorios" };
   }
 
   const payload = {
@@ -31,7 +25,7 @@ exports.handler = async (event) => {
     contents: { es: message, en: message },
     ...(filters && filters.length > 0
       ? { filters }
-      : { included_segments: ["Subscribed Users"] }) // ✅ CORREGIDO: Subscribed Users
+      : { included_segments: ["All Subscribers"] })
   };
 
   try {
@@ -39,8 +33,7 @@ exports.handler = async (event) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // ✅ CORREGIDO: Usamos "Basic" que es el formato de autorización infalible para su API
-        "Authorization": `Basic ${REST_KEY}` 
+        "Authorization": `key ${ONESIGNAL_REST_KEY}`   // Tenías "key" en minúscula
       },
       body: JSON.stringify(payload)
     });
