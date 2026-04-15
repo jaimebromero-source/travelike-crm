@@ -44,7 +44,7 @@ const logoutSessionToken = async (token) => {
 };
 
 const GEMINI_KEY = "AIzaSyCEv0XlhJy4hTjotvRASDxMRikXUnwtQNQ";
-const ONESIGNAL_APP_ID = "6257235d-3689-4cc8-b685-77f16e8085f4";
+const ONESIGNAL_APP_ID = "c12214ba-200f-478f-8f8e-899efc5ad4c0";
 // ⚠️ ONESIGNAL_REST_KEY no va aquí — vive en las variables de entorno de Netlify
 // Las notificaciones se envían a través de /.netlify/functions/send-notification
 
