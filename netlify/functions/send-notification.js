@@ -39,7 +39,7 @@ exports.handler = async (event) => {
       headers: {
         "Content-Type": "application/json",
         // ✅ Volvemos a "key" en minúscula, que es como lo tenías cuando funcionaban los viajes
-        "Authorization": `key ${REST_KEY}`
+        "Authorization": `Key ${REST_KEY}`
       },
       body: JSON.stringify(payload)
     });
