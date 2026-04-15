@@ -1,8 +1,8 @@
 // netlify/functions/send-notification.js
-const ONESIGNAL_APP_ID  = "c12214ba-200f-478f-8f8e-899efc5ad4c0";
+const ONESIGNAL_APP_ID  = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
 const ONESIGNAL_REST_KEY =
   process.env.ONESIGNAL_REST_KEY ||
-  "os_v2_app_yerbjorab5dy7d4orgppywwuycqgz5uwl32eekmbh5skl6szxgukmgpxdkvgibwxehss5mwkoufwehehkbjwf4qokgcja42hcvalvoq";
+  "os_v2_app_mjlsgxjwrfgmrnufo7yw5aef6sp4wk7yv2muupvtoel7yyn4pyxwwdi47sginuflwrvp7qddq6ku4jtqhlqfmes2hz3kkln6bl3buha";
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -13,20 +13,9 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, body: "Invalid JSON" }; }
 
-  // Extraemos las variables que manda el frontend
   const { title, message, filters } = body;
-  
   if (!title || !message) {
     return { statusCode: 400, body: "title y message son obligatorios" };
-  }
-
-  // Lógica de destinatarios: Si hay filtros los usamos, si no, a TODOS.
-  let targetOptions = {};
-  if (filters && filters.length > 0) {
-    targetOptions = { filters: filters };
-  } else {
-    // EL CAMBIO CLAVE: El segmento oficial de OneSignal es "Subscribed Users"
-    targetOptions = { included_segments: ["Subscribed Users"] };
   }
 
   const payload = {
@@ -34,7 +23,9 @@ exports.handler = async (event) => {
     target_channel: "push",
     headings: { es: title, en: title },
     contents: { es: message, en: message },
-    ...targetOptions
+    ...(filters && filters.length > 0
+      ? { filters }
+      : { included_segments: ["Subscribed Users"] })
   };
 
   try {
@@ -42,7 +33,7 @@ exports.handler = async (event) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `key ${ONESIGNAL_REST_KEY}`
+        "Authorization": `key ${ONESIGNAL_REST_KEY}`   // ← minúscula, correcto según docs
       },
       body: JSON.stringify(payload)
     });
