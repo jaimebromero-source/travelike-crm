@@ -31,7 +31,7 @@ exports.handler = async (event) => {
     contents: { es: message, en: message },
     ...(filters && filters.length > 0
       ? { filters }
-      : { included_segments: ["All Subscribers"] })
+      : { included_segments: ["Subscribed Users"] }) // ✅ CORREGIDO: Subscribed Users
   };
 
   try {
@@ -39,8 +39,8 @@ exports.handler = async (event) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // ✅ "Key" con K mayúscula — obligatorio para OneSignal REST API v2
-        "Authorization": `Key ${REST_KEY}`
+        // ✅ CORREGIDO: Usamos "Basic" que es el formato de autorización infalible para su API
+        "Authorization": `Basic ${REST_KEY}` 
       },
       body: JSON.stringify(payload)
     });
