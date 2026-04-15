@@ -1,7 +1,7 @@
 // netlify/functions/send-notification.js
 // ⚠️ La REST Key NUNCA va en el código — solo en variables de entorno de Netlify
 
-const ONESIGNAL_APP_ID = "6257235d-3689-4cc8-b685-77f16e8085f4";
+const ONESIGNAL_APP_ID = "c12214ba-200f-478f-8f8e-899efc5ad4c0";
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -31,7 +31,7 @@ exports.handler = async (event) => {
     contents: { es: message, en: message },
     ...(filters && filters.length > 0
       ? { filters }
-: { included_segments: ["Subscribed Users"] })
+      : { included_segments: ["All Subscribers"] })
   };
 
   try {
