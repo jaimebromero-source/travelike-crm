@@ -1,27 +1,32 @@
 // netlify/functions/send-notification.js
-// ⚠️ La REST Key NUNCA va en el código — solo en variables de entorno de Netlify
-
-const ONESIGNAL_APP_ID = "c12214ba-200f-478f-8f8e-899efc5ad4c0";
+const ONESIGNAL_APP_ID  = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
+const ONESIGNAL_REST_KEY =
+  process.env.ONESIGNAL_REST_KEY ||
+  "os_v2_app_mjlsgxjwrfgmrnufo7yw5aef6sp4wk7yv2muupvtoel7yyn4pyxwwdi47sginuflwrvp7qddq6ku4jtqhlqfmes2hz3kkln6bl3buha";
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  // La key viene SOLO del entorno — nunca hardcodeada
-  const REST_KEY = process.env.ONESIGNAL_REST_KEY;
-  if (!REST_KEY) {
-    console.error("[OneSignal] ONESIGNAL_REST_KEY no está configurada en Netlify");
-    return { statusCode: 500, body: JSON.stringify({ error: "REST key no configurada" }) };
-  }
-
   let body;
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, body: "Invalid JSON" }; }
 
+  // Extraemos las variables que manda el frontend
   const { title, message, filters } = body;
+  
   if (!title || !message) {
-    return { statusCode: 400, body: JSON.stringify({ error: "title y message son obligatorios" }) };
+    return { statusCode: 400, body: "title y message son obligatorios" };
+  }
+
+  // Lógica de destinatarios: Si hay filtros los usamos, si no, a TODOS.
+  let targetOptions = {};
+  if (filters && filters.length > 0) {
+    targetOptions = { filters: filters };
+  } else {
+    // EL CAMBIO CLAVE: El segmento oficial de OneSignal es "Subscribed Users"
+    targetOptions = { included_segments: ["Subscribed Users"] };
   }
 
   const payload = {
@@ -29,9 +34,7 @@ exports.handler = async (event) => {
     target_channel: "push",
     headings: { es: title, en: title },
     contents: { es: message, en: message },
-    ...(filters && filters.length > 0
-      ? { filters }
-      : { included_segments: ["All Subscribers"] })
+    ...targetOptions
   };
 
   try {
@@ -39,8 +42,7 @@ exports.handler = async (event) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // ✅ "Key" con K mayúscula — obligatorio para OneSignal REST API v2
-        "Authorization": `Key ${REST_KEY}`
+        "Authorization": `key ${ONESIGNAL_REST_KEY}`
       },
       body: JSON.stringify(payload)
     });
