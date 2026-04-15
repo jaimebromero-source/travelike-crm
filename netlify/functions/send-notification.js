@@ -2,7 +2,6 @@
 // Proxy seguro para OneSignal — la REST Key NUNCA va al cliente
 
 exports.handler = async (event) => {
-  // Solo POST
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
@@ -18,7 +17,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: "title y message son requeridos" }) };
   }
 
-  const ONESIGNAL_APP_ID  = process.env.ONESIGNAL_APP_ID  || "3737bebb-bec5-4427-b663-881160aef464";
+  const ONESIGNAL_APP_ID   = process.env.ONESIGNAL_APP_ID  || "3737bebb-bec5-4427-b663-881160aef464";
   const ONESIGNAL_REST_KEY = process.env.ONESIGNAL_REST_KEY;
 
   if (!ONESIGNAL_REST_KEY) {
@@ -26,18 +25,9 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: "REST Key no configurada" }) };
   }
 
-  // ─── TARGETING ────────────────────────────────────────────────
-  // Si llegan filtros → usarlos (ej: filtrar por tripId)
-  // Si NO llegan filtros → mandar a TODOS los suscritos
-  //
-  // ⚠️  ESTE ES EL FIX CLAVE:
-  //     No uses include_player_ids con array vacío → da el error
-  //     "All included players are not subscribed"
-  //     Usa included_segments: ["All"] para envío masivo.
-  // ──────────────────────────────────────────────────────────────
   const targeting = (Array.isArray(filters) && filters.length > 0)
-    ? { filters }                          // envío filtrado por tag (ej: tripId)
-    : { included_segments: ["All"] };      // envío a todos los suscritos
+    ? { filters }
+    : { included_segments: ["All"] };
 
   const payload = {
     app_id:   ONESIGNAL_APP_ID,
@@ -58,6 +48,29 @@ exports.handler = async (event) => {
 
     const data = await response.json();
     console.log("[send-notification] OneSignal response:", JSON.stringify(data));
+
+    // ── FIX CLAVE ──────────────────────────────────────────────────────────────
+    // OneSignal devuelve este error cuando no hay suscriptores AÚN, no es un
+    // error real de la app. Lo tratamos como éxito con 0 destinatarios para
+    // que el UI no muestre un error en rojo confundiendo al admin.
+    // ──────────────────────────────────────────────────────────────────────────
+    const isNoSubscribers =
+      !data.id &&
+      Array.isArray(data.errors) &&
+      data.errors.some((e) => typeof e === "string" && e.includes("not subscribed"));
+
+    if (isNoSubscribers) {
+      console.warn("[send-notification] Sin suscriptores activos — notificación ignorada");
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: null,
+          recipients: 0,
+          no_subscribers: true,   // flag para que el cliente lo sepa
+        }),
+      };
+    }
 
     return {
       statusCode: response.ok ? 200 : response.status,
