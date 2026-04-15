@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="es">
   <head>
@@ -28,10 +29,40 @@
       OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "3737bebb-bec5-4427-b663-881160aef464",
-          allowLocalhostAsSecureOrigin: true, // Permite pruebas en local
+          allowLocalhostAsSecureOrigin: true,
           serviceWorkerParam: { scope: "/" },
-          serviceWorkerPath: "OneSignalSDKWorker.js", // Apuntando a tu sw.js unificado
+          serviceWorkerPath: "OneSignalSDKWorker.js",
+          // Deshabilitar el bell flotante — el prompt lo controla la app
+          notifyButton: { enable: false },
         });
+
+        // Exponer una función global para que React la llame cuando quiera
+        // pedir permiso al usuario (ej: al hacer login en el portal cliente)
+        window.__tlRequestPushPermission = async () => {
+          try {
+            const permission = await OneSignal.Notifications.permissionNative;
+            if (permission === "default") {
+              // Primera vez — mostrar prompt nativo del navegador
+              await OneSignal.Notifications.requestPermission();
+            }
+            // Si ya fue aceptado, asegurarse de que está suscrito
+            if (OneSignal.Notifications.permissionNative === "granted") {
+              await OneSignal.User.PushSubscription.optIn();
+            }
+          } catch (e) {
+            console.warn("[OneSignal] Error al pedir permiso:", e);
+          }
+        };
+
+        // Exponer función para taggear al usuario con su tripId
+        // Llamar desde React: window.__tlSetTag("tripId", "abc123")
+        window.__tlSetTag = async (key, value) => {
+          try {
+            await OneSignal.User.addTag(key, value);
+          } catch (e) {
+            console.warn("[OneSignal] Error al setear tag:", e);
+          }
+        };
       });
     </script>
   </head>
