@@ -1,7 +1,7 @@
 // netlify/functions/send-notification.js
 
 // ✅ VOLVEMOS AL APP ID QUE SÍ TE FUNCIONÓ PARA LOS VIAJES
-const ONESIGNAL_APP_ID = "a53d37c2-d328-48e0-84e4-1a3a71db77ad";
+const ONESIGNAL_APP_ID = "3737bebb-bec5-4427-b663-881160aef464";
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
