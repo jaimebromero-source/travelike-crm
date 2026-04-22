@@ -2034,20 +2034,80 @@ function ATrip({ go, tid, initTab, trips, clients, crm, sT, sC, sCrm }) {
           </ARow>
         </AModal>}
         {addModal==="existing" && <AModal title="Añadir viajeros existentes" onClose={()=>{ setAddModal(null); setExSearch(""); setExSelected([]); }}>
-          <div style={{ fontSize:12,color:A.muted,fontFamily:BF,marginBottom:10 }}>Selecciona uno o varios clientes. Si seleccionas más de uno, se unirán como grupo.</div>
+          <div style={{ fontSize:12,color:A.muted,fontFamily:BF,marginBottom:10 }}>Los grupos ya definidos se añaden juntos automáticamente.</div>
           <SearchBar value={exSearch} onChange={setExSearch} placeholder="Buscar por nombre o código..." />
-          {filteredEx.length===0?<AEmpty text={allOtherClients.length===0?"No hay otros clientes":"Sin resultados"} />:filteredEx.map(c=>{ const cTrip=c.tripId?trips.find(t=>t.id===c.tripId):null; const sel=exSelected.includes(c.id); return (<button key={c.id} onClick={()=>setExSelected(prev=>sel?prev.filter(x=>x!==c.id):[...prev,c.id])} style={{ ...ab(sel?A.cyan+"22":A.card2,A.text),width:"100%",marginBottom:8,textAlign:"left",border:`2px solid ${sel?A.cyan:A.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",gap:10 }}>
-            <div style={{ width:36,height:36,borderRadius:8,background:sel?A.cyan+"33":A.cyan+"22",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:ANTON,fontSize:15,color:sel?A.cyan:A.cyan,flexShrink:0,border:sel?`2px solid ${A.cyan}`:""}}>{c.passportPhoto?<img src={c.passportPhoto} style={{ width:"100%",height:"100%",objectFit:"cover",borderRadius:6 }} alt="" />:c.nombre[0]}</div>
-            <div style={{ flex:1 }}><div style={{ fontFamily:BF,fontSize:14,fontWeight:700,color:sel?A.cyan:A.text }}>{c.nombre}</div><div style={{ fontSize:10,color:cTrip?A.orange:A.muted,fontFamily:BF }}>{cTrip?`Actual: ${cTrip.flag} ${cTrip.name}`:"Sin viaje"} · {c.code}</div></div>
-            <span style={{ color:sel?A.cyan:A.muted,fontSize:20,fontWeight:700 }}>{sel?"✓":"+"}</span>
-          </button>); })}
+          {(()=>{
+            // Agrupar visualmente: primero por groupId, luego individuales
+            const groups = {};
+            filteredEx.forEach(c => {
+              const key = c.groupId || c.id;
+              if (!groups[key]) groups[key] = [];
+              groups[key].push(c);
+            });
+            const entries = Object.entries(groups);
+            if (entries.length === 0) return <AEmpty text={allOtherClients.length===0?"No hay otros clientes":"Sin resultados"} />;
+            return entries.map(([gKey, members]) => {
+              const isGroupCard = members.length > 1;
+              const allSel = members.every(c => exSelected.includes(c.id));
+              const anySel = members.some(c => exSelected.includes(c.id));
+              const toggleGroup = () => {
+                if (allSel) {
+                  setExSelected(prev => prev.filter(id => !members.map(m=>m.id).includes(id)));
+                } else {
+                  setExSelected(prev => [...new Set([...prev, ...members.map(m=>m.id)])]);
+                }
+              };
+              if (isGroupCard) {
+                const cTrip = members[0].tripId ? trips.find(t=>t.id===members[0].tripId) : null;
+                return (
+                  <div key={gKey} onClick={toggleGroup} style={{ background:allSel?A.purple+"22":A.card2,borderRadius:14,marginBottom:10,border:`2px solid ${allSel?A.purple:A.border}`,cursor:"pointer",overflow:"hidden" }}>
+                    <div style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:`1px solid ${allSel?A.purple+"33":A.border+"44"}`,background:`linear-gradient(90deg,${A.purple}10,transparent)` }}>
+                      <span style={{ fontSize:16 }}>👥</span>
+                      <div style={{ flex:1,fontFamily:BF,fontSize:11,color:A.purple,fontWeight:700,letterSpacing:1,textTransform:"uppercase" }}>Grupo · {members.length} viajeros{cTrip?` · ${cTrip.flag} ${cTrip.name.split(" ")[0]}`:""}</div>
+                      <div style={{ width:26,height:26,borderRadius:6,border:`2px solid ${allSel?A.purple:A.border}`,background:allSel?A.purple:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                        {allSel&&<span style={{ color:"#fff",fontSize:14,fontWeight:900 }}>✓</span>}
+                      </div>
+                    </div>
+                    {members.map((c,mi) => (
+                      <div key={c.id} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderTop:mi>0?`1px solid ${A.border}22`:"none" }}>
+                        <div style={{ width:34,height:34,borderRadius:8,background:A.purple+"22",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:ANTON,fontSize:14,color:A.purple,flexShrink:0,overflow:"hidden",border:`1.5px solid ${A.purple}33` }}>
+                          {c.passportPhoto?<img src={c.passportPhoto} style={{ width:"100%",height:"100%",objectFit:"cover" }} alt="" />:c.nombre[0]}
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontFamily:BF,fontSize:14,fontWeight:700,color:allSel?A.purple:A.text }}>{c.nombre}</div>
+                          <div style={{ fontSize:10,color:A.muted,fontFamily:BF }}>{c.code}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+              // Individual
+              const c = members[0];
+              const cTrip = c.tripId ? trips.find(t=>t.id===c.tripId) : null;
+              const sel = exSelected.includes(c.id);
+              return (
+                <button key={gKey} onClick={()=>setExSelected(prev=>sel?prev.filter(x=>x!==c.id):[...prev,c.id])}
+                  style={{ ...ab(sel?A.cyan+"22":A.card2,A.text),width:"100%",marginBottom:8,textAlign:"left",border:`2px solid ${sel?A.cyan:A.border}`,borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",gap:10 }}>
+                  <div style={{ width:36,height:36,borderRadius:8,background:sel?A.cyan+"33":A.cyan+"22",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:ANTON,fontSize:15,color:A.cyan,flexShrink:0,border:sel?`2px solid ${A.cyan}`:"",overflow:"hidden" }}>
+                    {c.passportPhoto?<img src={c.passportPhoto} style={{ width:"100%",height:"100%",objectFit:"cover",borderRadius:6 }} alt="" />:c.nombre[0]}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontFamily:BF,fontSize:14,fontWeight:700,color:sel?A.cyan:A.text }}>{c.nombre}</div>
+                    <div style={{ fontSize:10,color:cTrip?A.orange:A.muted,fontFamily:BF }}>{cTrip?`${cTrip.flag} ${cTrip.name}`:"Sin viaje"} · {c.code}</div>
+                  </div>
+                  <span style={{ color:sel?A.cyan:A.muted,fontSize:20,fontWeight:700 }}>{sel?"✓":"+"}</span>
+                </button>
+              );
+            });
+          })()}
           {exSelected.length>0&&<div style={{ position:"sticky",bottom:0,background:A.card2,borderRadius:12,padding:"12px",marginTop:8,border:`1px solid ${A.cyan}44` }}>
             <button onClick={()=>{
-              const groupId=exSelected.length>1?`g${uid()}`:null;
-              sC(clients.map(x=>exSelected.includes(x.id)?{...x,tripId:tid,pagosEstado:(trip.pagosConfig||[]).map(()=>"pendiente"),pagosImporteCustom:(trip.pagosConfig||[]).map(()=>null),groupId:groupId||x.groupId}:x));
+              // Preservar groupId existente, no crear uno nuevo
+              sC(clients.map(x=>exSelected.includes(x.id)?{...x,tripId:tid,pagosEstado:(trip.pagosConfig||[]).map(()=>"pendiente"),pagosImporteCustom:(trip.pagosConfig||[]).map(()=>null)}:x));
               setAddModal(null); setExSearch(""); setExSelected([]);
             }} style={{ ...ab(`linear-gradient(90deg,${A.cyan},#0099bb)`,A.bg),width:"100%",borderRadius:10,fontFamily:BF,fontSize:14 }}>
-              ✓ Añadir {exSelected.length} seleccionado{exSelected.length!==1?"s":""} {exSelected.length>1?"como grupo":""}
+              ✓ Añadir {exSelected.length} viajero{exSelected.length!==1?"s":""} al viaje
             </button>
           </div>}
         </AModal>}
@@ -3259,119 +3319,212 @@ function PrivacidadModal({ onClose }) {
 
 function Passport({ go, cid, clients, setClients, trips, sC, logout }) {
   const cl = clients.find(c => c.id === cid);
-  const [photos, setPhotos] = useState(cl?.passportPhotos || (cl?.passportPhoto ? [cl.passportPhoto] : []));
+  const groupMembers = cl?.groupId ? clients.filter(c => c.groupId === cl.groupId) : (cl ? [cl] : []);
+  const isGroup = groupMembers.length > 1;
+
+  const [memberPhotos, setMemberPhotos] = useState(() => {
+    const init = {};
+    groupMembers.forEach(m => { init[m.id] = m.passportPhotos || (m.passportPhoto ? [m.passportPhoto] : []); });
+    return init;
+  });
   const [c0, setC0] = useState(false);
   const [c1, setC1] = useState(false);
   const [c2, setC2] = useState(false);
   const [lightbox, setLightbox] = useState(null);
   const [showPriv, setShowPriv] = useState(false);
-  const ref = useRef();
+  const fileRefs = useRef({});
 
   if (!cl) return null;
 
-  const onFile = e => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    files.forEach(f => {
-      const r = new FileReader();
-      r.onload = ev => {
-        const img = new Image();
-        img.onload = () => {
-          const MAX = 800;
-          let w = img.width, h = img.height;
-          if (w > MAX || h > MAX) {
-            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-            else { w = Math.round(w * MAX / h); h = MAX; }
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = w; canvas.height = h;
-          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-          setPhotos(prev => [...prev, canvas.toDataURL("image/jpeg", 0.78)]);
-        };
-        img.onerror = () => setPhotos(prev => [...prev, ev.target.result]);
-        img.src = ev.target.result;
+  const processAndAddPhoto = (memberId, file) => {
+    const r = new FileReader();
+    r.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 800; let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+        const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        setMemberPhotos(prev => ({ ...prev, [memberId]: [...(prev[memberId] || []), canvas.toDataURL("image/jpeg", 0.78)] }));
       };
-      r.readAsDataURL(f);
-    });
-    e.target.value = "";
+      img.onerror = () => setMemberPhotos(prev => ({ ...prev, [memberId]: [...(prev[memberId] || []), ev.target.result] }));
+      img.src = ev.target.result;
+    };
+    r.readAsDataURL(file);
   };
-
-  const removePhoto = idx => setPhotos(prev => prev.filter((_, i) => i !== idx));
+  const removePhotoFor = (memberId, idx) => setMemberPhotos(prev => ({ ...prev, [memberId]: (prev[memberId] || []).filter((_, i) => i !== idx) }));
   const canSubmit = c0 && c1;
 
   const submit = async () => {
     if (!canSubmit) return;
-    const updated = clients.map(x => x.id === cid
-      ? { ...x, passportPhoto: photos[0] || null, passportPhotos: photos, rgpdConsent: true, passportConsent: c1, photoConsent: c2, firstLogin: false, passportExpiryDismissed: false, consentDate: new Date().toISOString(), consentRGPD: c0, consentPasaporte: c1, consentFoto: c2 }
-      : x
-    );
+    const updated = clients.map(x => {
+      const isMember = groupMembers.find(m => m.id === x.id);
+      if (!isMember) return x;
+      const photos = memberPhotos[x.id] || [];
+      return { ...x, passportPhoto: photos[0] || null, passportPhotos: photos, rgpdConsent: true, passportConsent: c1, photoConsent: c2, firstLogin: false, passportExpiryDismissed: false, consentDate: new Date().toISOString(), consentRGPD: c0, consentPasaporte: c1, consentFoto: c2 };
+    });
     setClients(updated);
     go("notifprompt", { cid });
     db.set(SK_C, updated);
   };
 
-  return (
-    <div style={{ fontFamily: BF, background: A.bg, minHeight: "100vh", maxWidth: 560, margin: "0 auto", color: A.text }}>
-      <div style={{ background: "linear-gradient(135deg,#07070f 0%,#0f1f3d 60%,#07070f 100%)", padding: "40px 24px 32px", borderBottom: `1px solid ${A.border}`, textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>✈️</div>
-        <div style={{ fontFamily: ANTON, fontSize: 32, color: "#fff", lineHeight: 1, marginBottom: 8, letterSpacing: 1 }}>BIENVENIDO/A</div>
-        <div style={{ fontFamily: ANTON, fontSize: 22, color: A.cyan, letterSpacing: 2 }}>{cl.nombre.split(" ")[0].toUpperCase()}</div>
-        <div style={{ fontSize: 14, color: A.muted, fontFamily: BF, marginTop: 10 }}>Tu aventura empieza aquí. Solo necesitamos un par de datos.</div>
+  const ConsentBlock = () => (<>
+    <label style={{ display:"flex",gap:12,alignItems:"flex-start",marginBottom:12,cursor:"pointer",padding:"14px",background:c0?A.cyan+"12":A.card2,borderRadius:14,border:`2px solid ${c0?A.cyan:A.border}` }}>
+      <input type="checkbox" checked={c0} onChange={e=>setC0(e.target.checked)} style={{ marginTop:2,width:22,height:22,flexShrink:0,accentColor:A.cyan }} />
+      <div>
+        <div style={{ fontFamily:BF,fontSize:14,fontWeight:700,color:c0?A.cyan:A.text,marginBottom:3 }}>📋 Tratamiento de datos personales <span style={{ color:A.red }}>*</span></div>
+        <div style={{ fontFamily:BF,fontSize:12,color:A.muted,lineHeight:1.6 }}>He leído y acepto el tratamiento de mis datos personales por Travelike SL para la gestión de mi viaje, conforme al RGPD.{" "}<span onClick={e=>{e.preventDefault();setShowPriv(true);}} style={{ color:A.cyan,textDecoration:"underline",cursor:"pointer" }}>Leer política →</span></div>
       </div>
-      <div style={{ padding: "24px 20px" }}>
-        <div style={{ background: A.card, borderRadius: 14, padding: 20, border: `1px solid ${A.border}`, marginBottom: 16 }}>
-          <div style={{ fontFamily: ANTON, fontSize: 18, color: "#fff", marginBottom: 4, letterSpacing: 1 }}>📷 FOTO DEL PASAPORTE</div>
-          <div style={{ fontFamily: BF, fontSize: 12, color: A.muted, marginBottom: 14 }}>Puedes subir varias fotos (anverso, reverso…)</div>
-          {photos.length > 0 && (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-              {photos.map((p, i) => (
-                <div key={i} style={{ position: "relative", width: 90, height: 90, borderRadius: 12, overflow: "hidden", border: `2px solid ${A.cyan}44`, flexShrink: 0 }}>
-                  <img src={p} onClick={() => setLightbox(p)} style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} alt="" />
-                  <button onClick={() => removePhoto(i)} style={{ position: "absolute", top: 3, right: 3, width: 22, height: 22, borderRadius: "50%", background: A.red, border: "none", color: "#fff", fontSize: 12, cursor: "pointer", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-                </div>
-              ))}
-              <div onClick={() => ref.current.click()} style={{ width: 90, height: 90, borderRadius: 12, border: `2px dashed ${A.border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, background: A.card2 }}>
-                <span style={{ fontSize: 24, color: A.muted }}>+</span>
-                <span style={{ fontFamily: BF, fontSize: 9, color: A.muted, textTransform: "uppercase", letterSpacing: 1 }}>Añadir</span>
-              </div>
-            </div>
-          )}
-          {photos.length === 0 && (
-            <div onClick={() => ref.current.click()} style={{ background: A.card2, border: `2px dashed ${A.border}`, borderRadius: 12, height: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: 14 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
-              <div style={{ fontFamily: ANTON, fontSize: 15, color: A.cyan, letterSpacing: 1 }}>TOCA PARA FOTOGRAFIAR</div>
-              <div style={{ fontFamily: BF, fontSize: 12, color: A.muted, marginTop: 4 }}>Cámara o galería</div>
-            </div>
-          )}
-          <input ref={ref} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={onFile} />
-          <label style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12, cursor: "pointer", padding: "14px", background: c0 ? A.cyan + "12" : A.card2, borderRadius: 14, border: `2px solid ${c0 ? A.cyan : A.border}` }}>
-            <input type="checkbox" checked={c0} onChange={e => setC0(e.target.checked)} style={{ marginTop: 2, width: 22, height: 22, flexShrink: 0, accentColor: A.cyan }} />
-            <div>
-              <div style={{ fontFamily: BF, fontSize: 14, fontWeight: 700, color: c0 ? A.cyan : A.text, marginBottom: 3 }}>📋 Tratamiento de datos personales <span style={{ color: A.red }}>*</span></div>
-              <div style={{ fontFamily: BF, fontSize: 12, color: A.muted, lineHeight: 1.6 }}>He leído y acepto el tratamiento de mis datos personales por Travelike SL para la gestión de mi viaje, conforme al RGPD. {" "}<span onClick={e => { e.preventDefault(); setShowPriv(true); }} style={{ color: A.cyan, textDecoration: "underline", cursor: "pointer" }}>Leer política de privacidad →</span></div>
-            </div>
-          </label>
-          <label style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12, cursor: "pointer", padding: "14px", background: c1 ? A.green + "15" : A.card2, borderRadius: 14, border: `2px solid ${c1 ? A.green : A.border}` }}>
-            <input type="checkbox" checked={c1} onChange={e => setC1(e.target.checked)} style={{ marginTop: 2, width: 22, height: 22, flexShrink: 0, accentColor: A.green }} />
-            <div>
-              <div style={{ fontFamily: BF, fontSize: 14, fontWeight: 700, color: c1 ? A.green : A.text, marginBottom: 3 }}>🔒 Uso de foto de pasaporte <span style={{ color: A.red }}>*</span></div>
-              <div style={{ fontFamily: BF, fontSize: 12, color: A.muted, lineHeight: 1.6 }}>Autorizo a Travelike a utilizar mi foto de pasaporte exclusivamente para los trámites del viaje. Mis datos están seguros.</div>
-            </div>
-          </label>
-          <label style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 20, cursor: "pointer", padding: "14px", background: c2 ? A.purple + "15" : A.card2, borderRadius: 14, border: `2px solid ${c2 ? A.purple : A.border}` }}>
-            <input type="checkbox" checked={c2} onChange={e => setC2(e.target.checked)} style={{ marginTop: 2, width: 22, height: 22, flexShrink: 0, accentColor: A.purple }} />
-            <div>
-              <div style={{ fontFamily: BF, fontSize: 14, fontWeight: 700, color: c2 ? A.purple : A.text, marginBottom: 3 }}>📸 Fotos del viaje en redes <span style={{ color: A.muted, fontSize: 11, fontWeight: 400 }}>(opcional)</span></div>
-              <div style={{ fontFamily: BF, fontSize: 12, color: A.muted, lineHeight: 1.6 }}>Para nosotros es muy especial poder compartir los momentos del viaje contigo. Si quieres, usaremos tus fotos en nuestras redes — siempre con cariño y buen gusto. 🙌</div>
-            </div>
-          </label>
-          <div style={{ fontFamily: BF, fontSize: 11, color: A.muted, marginBottom: 16, textAlign: "center" }}><span style={{ color: A.red }}>*</span> Campos obligatorios. Puedes ejercer tus derechos RGPD escribiendo a <span style={{ color: A.cyan }}>lauralietor@hotmail.com</span></div>
-          <button onClick={submit} disabled={!canSubmit} style={{ width: "100%", padding: "18px", border: "none", borderRadius: 14, fontFamily: ANTON, fontSize: 16, letterSpacing: 3, cursor: canSubmit ? "pointer" : "default", background: canSubmit ? `linear-gradient(90deg,${A.cyan},#0099bb)` : A.card2, color: canSubmit ? A.bg : A.muted, textTransform: "uppercase" }}>CONTINUAR →</button>
-          {logout && <div style={{ textAlign: "center", marginTop: 16 }}><button onClick={logout} style={{ background: "none", border: "none", color: A.muted, fontSize: 13, cursor: "pointer", fontFamily: BF }}>Cerrar sesión</button></div>}
+    </label>
+    <label style={{ display:"flex",gap:12,alignItems:"flex-start",marginBottom:12,cursor:"pointer",padding:"14px",background:c1?A.green+"15":A.card2,borderRadius:14,border:`2px solid ${c1?A.green:A.border}` }}>
+      <input type="checkbox" checked={c1} onChange={e=>setC1(e.target.checked)} style={{ marginTop:2,width:22,height:22,flexShrink:0,accentColor:A.green }} />
+      <div>
+        <div style={{ fontFamily:BF,fontSize:14,fontWeight:700,color:c1?A.green:A.text,marginBottom:3 }}>🔒 Uso de foto de pasaporte <span style={{ color:A.red }}>*</span></div>
+        <div style={{ fontFamily:BF,fontSize:12,color:A.muted,lineHeight:1.6 }}>Autorizo a Travelike a utilizar {isGroup?"nuestras fotos de pasaporte":"mi foto de pasaporte"} exclusivamente para los trámites del viaje.</div>
+      </div>
+    </label>
+    <label style={{ display:"flex",gap:12,alignItems:"flex-start",marginBottom:20,cursor:"pointer",padding:"14px",background:c2?A.purple+"15":A.card2,borderRadius:14,border:`2px solid ${c2?A.purple:A.border}` }}>
+      <input type="checkbox" checked={c2} onChange={e=>setC2(e.target.checked)} style={{ marginTop:2,width:22,height:22,flexShrink:0,accentColor:A.purple }} />
+      <div>
+        <div style={{ fontFamily:BF,fontSize:14,fontWeight:700,color:c2?A.purple:A.text,marginBottom:3 }}>📸 Fotos del viaje en redes <span style={{ color:A.muted,fontSize:11,fontWeight:400 }}>(opcional)</span></div>
+        <div style={{ fontFamily:BF,fontSize:12,color:A.muted,lineHeight:1.6 }}>Si queréis, usaremos vuestras fotos en nuestras redes — siempre con cariño y buen gusto. 🙌</div>
+      </div>
+    </label>
+    <div style={{ fontFamily:BF,fontSize:11,color:A.muted,marginBottom:16,textAlign:"center" }}><span style={{ color:A.red }}>*</span> Obligatorios · RGPD: lauralietor@hotmail.com</div>
+  </>);
+
+  return (
+    <div style={{ fontFamily:BF,background:A.bg,minHeight:"100vh",maxWidth:560,margin:"0 auto",color:A.text }}>
+      {/* HEADER */}
+      <div style={{ background:"linear-gradient(135deg,#07070f 0%,#0f1f3d 60%,#07070f 100%)",padding:"40px 24px 32px",borderBottom:`1px solid ${A.border}`,textAlign:"center" }}>
+        <div style={{ fontSize:48,marginBottom:12 }}>{isGroup?"👨‍👩‍👧":"✈️"}</div>
+        <div style={{ fontFamily:ANTON,fontSize:32,color:"#fff",lineHeight:1,marginBottom:8,letterSpacing:1 }}>BIENVENIDO{isGroup?"S":"/A"}</div>
+        <div style={{ fontFamily:ANTON,fontSize:isGroup?18:22,color:A.cyan,letterSpacing:2,lineHeight:1.3 }}>
+          {isGroup ? groupMembers.map(m=>m.nombre.split(" ")[0].toUpperCase()).join(" · ") : cl.nombre.split(" ")[0].toUpperCase()}
+        </div>
+        {isGroup && (
+          <div style={{ marginTop:12,display:"inline-flex",alignItems:"center",gap:8,background:A.purple+"22",border:`1px solid ${A.purple}44`,borderRadius:30,padding:"7px 16px" }}>
+            <span style={{ fontSize:14 }}>👥</span>
+            <span style={{ fontFamily:BF,fontSize:13,color:A.purple,fontWeight:700 }}>Grupo de {groupMembers.length} viajeros</span>
+          </div>
+        )}
+        <div style={{ fontSize:14,color:A.muted,fontFamily:BF,marginTop:12,lineHeight:1.6 }}>
+          {isGroup ? "Subid vuestros pasaportes para continuar juntos." : "Solo necesitamos un par de datos para empezar."}
         </div>
       </div>
-      {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
-      {showPriv && <PrivacidadModal onClose={() => setShowPriv(false)} />}
+
+      <div style={{ padding:"24px 20px" }}>
+        {/* FOTO(S) DE PASAPORTE */}
+        {isGroup ? (
+          <div style={{ marginBottom:16 }}>
+            {/* Barra de progreso del grupo */}
+            {(() => {
+              const withPhoto = groupMembers.filter(m => (memberPhotos[m.id]||[]).length > 0).length;
+              const pct = Math.round(withPhoto / groupMembers.length * 100);
+              return (
+                <div style={{ background:A.card2,borderRadius:14,padding:"12px 16px",marginBottom:14,border:`1px solid ${A.border}` }}>
+                  <div style={{ display:"flex",justifyContent:"space-between",marginBottom:6 }}>
+                    <div style={{ fontFamily:ANTON,fontSize:14,color:"#fff",letterSpacing:1 }}>PASAPORTES DEL GRUPO</div>
+                    <div style={{ fontFamily:ANTON,fontSize:14,color:withPhoto===groupMembers.length?A.green:A.orange }}>{withPhoto}/{groupMembers.length}</div>
+                  </div>
+                  <div style={{ height:6,background:A.border,borderRadius:3 }}><div style={{ height:"100%",width:`${pct}%`,background:withPhoto===groupMembers.length?A.green:`linear-gradient(90deg,${A.cyan},${A.purple})`,borderRadius:3,transition:"width 0.4s ease" }} /></div>
+                  {withPhoto === groupMembers.length && <div style={{ fontFamily:BF,fontSize:12,color:A.green,marginTop:6,textAlign:"center",fontWeight:700 }}>¡Todos los pasaportes subidos!</div>}
+                </div>
+              );
+            })()}
+
+            {groupMembers.map((member, mi) => {
+              const photos = memberPhotos[member.id] || [];
+              const isMe = member.id === cid;
+              const hasPhotos = photos.length > 0;
+              return (
+                <div key={member.id} style={{ background:A.card,borderRadius:20,padding:"18px",marginBottom:14,border:`2px solid ${hasPhotos?(isMe?A.cyan:A.purple)+"66":A.border}`,position:"relative",overflow:"hidden" }}>
+                  <div style={{ position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:(isMe?A.cyan:A.purple)+"08",pointerEvents:"none" }} />
+                  {/* Member header */}
+                  <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:16 }}>
+                    <div style={{ width:48,height:48,borderRadius:12,background:isMe?A.cyan+"22":A.purple+"22",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:ANTON,fontSize:22,color:isMe?A.cyan:A.purple,border:`2px solid ${isMe?A.cyan:A.purple}44`,flexShrink:0 }}>
+                      {hasPhotos ? <img src={photos[0]} style={{ width:"100%",height:"100%",objectFit:"cover",borderRadius:10 }} alt="" /> : member.nombre[0]?.toUpperCase()}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontFamily:ANTON,fontSize:18,color:isMe?A.cyan:"#fff",letterSpacing:0.5 }}>{member.nombre.toUpperCase()}</div>
+                      {isMe && <div style={{ fontFamily:BF,fontSize:9,color:A.cyan,letterSpacing:2,textTransform:"uppercase" }}>Tú</div>}
+                    </div>
+                    <div style={{ fontFamily:BF,fontSize:11,fontWeight:700,color:hasPhotos?A.green:A.orange,background:hasPhotos?A.green+"15":A.orange+"15",border:`1px solid ${hasPhotos?A.green:A.orange}33`,borderRadius:20,padding:"4px 10px" }}>
+                      {hasPhotos?`✓ ${photos.length} foto${photos.length>1?"s":""}`:"⚠️ Pendiente"}
+                    </div>
+                  </div>
+
+                  {/* Zona de fotos */}
+                  {hasPhotos ? (
+                    <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:10 }}>
+                      {photos.map((p,pi)=>(
+                        <div key={pi} style={{ position:"relative",width:84,height:84,borderRadius:12,overflow:"hidden",border:`2px solid ${isMe?A.cyan:A.purple}44`,flexShrink:0 }}>
+                          <img src={p} onClick={()=>setLightbox(p)} style={{ width:"100%",height:"100%",objectFit:"cover",cursor:"pointer" }} alt="" />
+                          <button onClick={()=>removePhotoFor(member.id,pi)} style={{ position:"absolute",top:3,right:3,width:22,height:22,borderRadius:"50%",background:A.red,border:"none",color:"#fff",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>✕</button>
+                        </div>
+                      ))}
+                      <div onClick={()=>{fileRefs.current[member.id].value="";fileRefs.current[member.id].click();}}
+                        style={{ width:84,height:84,borderRadius:12,border:`2px dashed ${A.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,background:A.card2 }}>
+                        <span style={{ fontSize:22,color:A.muted }}>+</span>
+                        <span style={{ fontFamily:BF,fontSize:8,color:A.muted,textTransform:"uppercase",letterSpacing:1,marginTop:2 }}>Añadir</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div onClick={()=>{fileRefs.current[member.id].value="";fileRefs.current[member.id].click();}}
+                      style={{ background:A.card2,border:`2px dashed ${isMe?A.cyan:A.purple}44`,borderRadius:14,height:130,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:6 }}>
+                      <div style={{ fontSize:32 }}>📷</div>
+                      <div style={{ fontFamily:ANTON,fontSize:14,color:isMe?A.cyan:A.purple,letterSpacing:1 }}>FOTOGRAFIAR PASAPORTE</div>
+                      <div style={{ fontFamily:BF,fontSize:11,color:A.muted }}>Cámara o galería · Anverso y reverso</div>
+                    </div>
+                  )}
+                  <input ref={el=>{if(el) fileRefs.current[member.id]=el;}} type="file" accept="image/*" multiple style={{ display:"none" }}
+                    onChange={e=>{Array.from(e.target.files).forEach(f=>processAndAddPhoto(member.id,f));e.target.value="";}} />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* SINGLE PERSON */
+          <div style={{ background:A.card,borderRadius:14,padding:20,border:`1px solid ${A.border}`,marginBottom:16 }}>
+            <div style={{ fontFamily:ANTON,fontSize:18,color:"#fff",marginBottom:4,letterSpacing:1 }}>📷 FOTO DEL PASAPORTE</div>
+            <div style={{ fontFamily:BF,fontSize:12,color:A.muted,marginBottom:14 }}>Puedes subir varias fotos (anverso, reverso…)</div>
+            {(memberPhotos[cl.id]||[]).length > 0 ? (
+              <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:14 }}>
+                {(memberPhotos[cl.id]||[]).map((p,i)=>(
+                  <div key={i} style={{ position:"relative",width:90,height:90,borderRadius:12,overflow:"hidden",border:`2px solid ${A.cyan}44`,flexShrink:0 }}>
+                    <img src={p} onClick={()=>setLightbox(p)} style={{ width:"100%",height:"100%",objectFit:"cover",cursor:"pointer" }} alt="" />
+                    <button onClick={()=>removePhotoFor(cl.id,i)} style={{ position:"absolute",top:3,right:3,width:22,height:22,borderRadius:"50%",background:A.red,border:"none",color:"#fff",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>✕</button>
+                  </div>
+                ))}
+                <div onClick={()=>{fileRefs.current[cl.id].value="";fileRefs.current[cl.id].click();}}
+                  style={{ width:90,height:90,borderRadius:12,border:`2px dashed ${A.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,background:A.card2 }}>
+                  <span style={{ fontSize:24,color:A.muted }}>+</span>
+                  <span style={{ fontFamily:BF,fontSize:9,color:A.muted,textTransform:"uppercase",letterSpacing:1 }}>Añadir</span>
+                </div>
+              </div>
+            ) : (
+              <div onClick={()=>{fileRefs.current[cl.id].value="";fileRefs.current[cl.id].click();}}
+                style={{ background:A.card2,border:`2px dashed ${A.border}`,borderRadius:12,height:160,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",marginBottom:14 }}>
+                <div style={{ fontSize:36,marginBottom:8 }}>📷</div>
+                <div style={{ fontFamily:ANTON,fontSize:15,color:A.cyan,letterSpacing:1 }}>TOCA PARA FOTOGRAFIAR</div>
+                <div style={{ fontFamily:BF,fontSize:12,color:A.muted,marginTop:4 }}>Cámara o galería</div>
+              </div>
+            )}
+            <input ref={el=>{if(el) fileRefs.current[cl.id]=el;}} type="file" accept="image/*" multiple style={{ display:"none" }}
+              onChange={e=>{Array.from(e.target.files).forEach(f=>processAndAddPhoto(cl.id,f));e.target.value="";}} />
+          </div>
+        )}
+
+        {/* CONSENTIMIENTOS */}
+        <div style={{ background:A.card,borderRadius:14,padding:"20px 20px 4px",border:`1px solid ${A.border}`,marginBottom:16 }}>
+          <ConsentBlock />
+        </div>
+
+        <button onClick={submit} disabled={!canSubmit} style={{ width:"100%",padding:"18px",border:"none",borderRadius:14,fontFamily:ANTON,fontSize:16,letterSpacing:3,cursor:canSubmit?"pointer":"default",background:canSubmit?`linear-gradient(90deg,${A.cyan},#0099bb)`:A.card2,color:canSubmit?A.bg:A.muted,textTransform:"uppercase" }}>CONTINUAR →</button>
+        {logout && <div style={{ textAlign:"center",marginTop:16 }}><button onClick={logout} style={{ background:"none",border:"none",color:A.muted,fontSize:13,cursor:"pointer",fontFamily:BF }}>Cerrar sesión</button></div>}
+      </div>
+      {lightbox && <Lightbox src={lightbox} onClose={()=>setLightbox(null)} />}
+      {showPriv && <PrivacidadModal onClose={()=>setShowPriv(false)} />}
     </div>
   );
 }
