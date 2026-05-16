@@ -12,7 +12,7 @@ const verifySessionToken=async(token,type="admin")=>{if(!token||typeof token!=="
 const logoutSessionToken=async(token)=>{if(!token||token==="true")return;try{await supabase.rpc("tl_logout_session",{input_token:token});}catch{}};
 const callClaude=async(b64,mime,prompt)=>{const isImg=mime?.startsWith("image/");const isPDF=mime==="application/pdf";const contentParts=[];if(b64&&(isImg||isPDF)){const SUPPORTED_IMG=["image/jpeg","image/png","image/gif","image/webp"];const safeMime=isImg?(SUPPORTED_IMG.includes(mime)?mime:"image/jpeg"):mime;contentParts.push({type:isImg?"image":"document",source:{type:"base64",media_type:safeMime,data:b64}});}contentParts.push({type:"text",text:prompt});const resp=await fetch("/.netlify/functions/claude-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:600,messages:[{role:"user",content:contentParts}]})});const data=await resp.json();if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));return data.content?.[0]?.text||"";};
 
-const BANK_IBAN="ES48 0128 0690 9001 0008 6284",BANK_TITULAR="TraveLike",WA_NUM="34600000000";
+const BANK_IBAN="ES08 3190 0096 4064 3188 5125",BANK_TITULAR="TraveLike",WA_NUM="34606575646";
 
 const CURRENCIES=[
   {code:"EUR",symbol:"€",name:"Euro"},{code:"USD",symbol:"$",name:"Dólar US"},{code:"GBP",symbol:"£",name:"Libra esterlina"},
